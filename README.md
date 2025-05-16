@@ -148,8 +148,6 @@ irm https://github.com/zKiwiko/ersa/releases/latest/download/install.ps1 | iex
 
 ```
 
-```powershell
-
 # Build from source
 
 To build Ersa from source, you need to have the following dependencies installed:
