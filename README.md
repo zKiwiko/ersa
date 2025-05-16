@@ -158,3 +158,5 @@ Then, run the following command to build the project:
 ```bash
 cargo build --release
 ```
+
+Then add it to your system PATH.
