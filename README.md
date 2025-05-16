@@ -139,6 +139,17 @@ You have the choice of a GPC or GPX project.
 ersa project --create <project name> --lang <gpc|gpx> (--output <path>)
 ```
 
+# Installing
+
+Open PowerShell with `win + r` and type `powershell`, then run the following command to install Ersa.
+
+```powershell 
+irm https://github.com/zKiwiko/ersa/releases/latest/download/install.ps1 | iex
+
+```
+
+```powershell
+
 # Build from source
 
 To build Ersa from source, you need to have the following dependencies installed:

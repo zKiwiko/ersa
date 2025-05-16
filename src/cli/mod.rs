@@ -22,13 +22,10 @@ enum Commands {
 
 #[derive(Args, Debug)]
 struct BuildArgs {
-    #[arg(long, short, group = "input")]
-    language: Option<String>,
-
-    #[arg(long, short, group = "input")]
+    #[arg(long, short, group = "input", num_args = 1, value_name = "FILEPATH")]
     file: Option<String>,
 
-    #[arg(long, short, group = "input")]
+    #[arg(long, short, group = "input", num_args = 1, value_name = "DIRECTORY")]
     dir: Option<String>,
 
     #[arg(long, short)]
@@ -43,7 +40,7 @@ struct PkgArgs {
     #[arg(long, short, group = "input", num_args = 1, value_name = "PACKAGE")]
     update: Option<String>,
 
-    #[arg(long, short, group = "input", num_args = 0..=1, value_name = "PACKAGE")]
+    #[arg(long, short, group = "input", num_args = 0..=1, value_name = "PACKAGE?")]
     list: Option<Option<String>>,
 
     #[arg(long, short, group = "input", num_args = 1, value_name = "PACKAGE")]
@@ -126,17 +123,9 @@ pub async fn run() -> Result<(), String> {
             if let Some(name) = &args.create {
                 if let Some(lang) = &args.language {
                     if let Some(output) = &args.output {
-                        project::create(
-                            name,
-                            lang,
-                            Some(output),
-                        )?;
+                        project::create(name, lang, Some(output))?;
                     } else {
-                        project::create(
-                            name,
-                            lang,
-                            None,
-                        )?;
+                        project::create(name, lang, None)?;
                     }
                 }
             }
