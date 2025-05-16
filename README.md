@@ -1,2 +1,6 @@
 # ersa
-GPC Package Manager / Utility Tool
+
+GPC/GPX Package Manager & Utility
+
+## Commands
+
