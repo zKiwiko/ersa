@@ -3,7 +3,7 @@ use crate::cli::pkg::git::*;
 use std::fs;
 use std::path::Path;
 
-pub fn list(package_name: &str) -> Result<(), String> {
+pub fn list(package_name: &Option<String>) -> Result<(), String> {
     let app_dir = get_app_directory()?;
     let lib_dir = app_dir.join("bin").join("lib");
 
@@ -11,11 +11,14 @@ pub fn list(package_name: &str) -> Result<(), String> {
         return Err("Library directory not found".to_string());
     }
 
-    if !package_name.is_empty() {
-        let package_dir = lib_dir.join(package_name);
+    if !package_name.is_none() {
+        let package_dir = lib_dir.join(package_name.clone().unwrap().to_string());
 
         if !package_dir.exists() {
-            return Err(format!("Package '{}' not found", package_name));
+            return Err(format!(
+                "Package '{}' not found",
+                package_name.clone().unwrap().to_string()
+            ));
         }
 
         list_package_details(&package_dir)?;

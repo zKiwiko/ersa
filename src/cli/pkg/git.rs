@@ -151,9 +151,9 @@ pub async fn download_and_extract_repo(git_url: &str, target_dir: &Path) -> Resu
     fs::remove_dir_all(&temp_dir)
         .map_err(|e| format!("Failed to clean up temporary directory: {}", e))?;
 
-    console::success(&format!(
-        "Repository downloaded and extracted to {:?}",
-        target_dir
+    console::log(&format!(
+        "Repository downloaded and extracted to {}",
+        target_dir.to_string_lossy().replace('\\', "/")
     ));
 
     Ok(())

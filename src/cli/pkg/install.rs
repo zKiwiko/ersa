@@ -5,18 +5,6 @@ use base64::decode;
 use reqwest::Client;
 
 pub async fn url(git_url: &str) -> Result<(), String> {
-    let api_url = |git_url: &str| -> String {
-        let (owner, repo) = match extract_github_info(git_url) {
-            Ok((owner, repo)) => (owner, repo),
-            Err(_) => return "Invalid Git URL".to_string(),
-        };
-
-        format!(
-            "https://api.github.com/repos/{}/{}/contents/lib.json",
-            owner, repo
-        )
-    };
-
     let client = Client::new();
     let response = client
         .get(api_url(git_url))

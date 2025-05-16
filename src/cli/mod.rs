@@ -1,6 +1,7 @@
 mod build;
 pub(crate) mod console;
 mod pkg;
+mod project;
 
 use clap::{Args, Parser, Subcommand};
 
@@ -15,6 +16,7 @@ struct Cli {
 enum Commands {
     Build(BuildArgs),
     Pkg(PkgArgs),
+    Project(ProjectArgs),
     Debug(DebugArgs),
 }
 
@@ -42,19 +44,28 @@ struct PkgArgs {
     update: Option<String>,
 
     #[arg(long, short, group = "input", num_args = 0..=1, value_name = "PACKAGE")]
-    list: Option<String>,
+    list: Option<Option<String>>,
 
     #[arg(long, short, group = "input", num_args = 1, value_name = "PACKAGE")]
     remove: Option<String>,
+}
 
-    #[arg(long, short)]
-    sync: bool,
+#[derive(Args, Debug)]
+struct ProjectArgs {
+    #[arg(long, short, num_args = 1, value_name = "NAME", requires = "language")]
+    create: Option<String>,
+
+    #[arg(long, short, num_args = 1, value_name = "LANGUAGE")]
+    language: Option<String>,
+
+    #[arg(long, short, group = "input", num_args = 1, value_name = "DIRECTORY")]
+    output: Option<String>,
 }
 
 #[derive(Args, Debug)]
 struct DebugArgs {
     #[arg(long)]
-    env_dir: Option<bool>,
+    dirs: bool,
 }
 
 pub async fn run() -> Result<(), String> {
@@ -79,27 +90,57 @@ pub async fn run() -> Result<(), String> {
             if let Some(url) = &args.install {
                 if url == "core" {
                     console::log("Installing Core libraries");
-                    pkg::download("https://github.com/zKiwiko/gpx-stdlib.git").await?;
+                    pkg::download(&"https://github.com/zKiwiko/gpx-stdlib.git").await?;
+                } else {
+                    pkg::download(&url).await?;
                 }
-                pkg::download(&url).await?;
             }
             if let Some(package) = &args.update {
                 console::log(&format!("Updating package: {}", package));
                 pkg::update(&package).await?;
             }
             if let Some(package) = &args.list {
-                let _ = pkg::list(&package);
-            } else {
-                let _ = pkg::list("");
+                let _ = pkg::list(package);
+            }
+
+            if let Some(package) = &args.remove {
+                console::log(&format!("Removing package: {}", package));
+                let _ = pkg::remove(package);
             }
             Ok(())
         }
         Commands::Debug(args) => {
-            if let Some(env_dir) = &args.env_dir {
-                console::log(&format!("Environment directory: {}", env_dir));
-            } else {
-                console::err("No debug action specified.")
+            if args.dirs {
+                let app_dir = pkg::git::get_app_directory()?;
+                let lib_dir = app_dir.join("bin").join("lib");
+                console::info(&format!("Install directory: {}", app_dir.display()));
+                console::info(&format!("Package directory: {}", lib_dir.display()));
+                console::info(&format!(
+                    "Working directory: {}",
+                    std::env::current_dir().unwrap().display()
+                ));
             }
+            Ok(())
+        }
+        Commands::Project(args) => {
+            if let Some(name) = &args.create {
+                if let Some(lang) = &args.language {
+                    if let Some(output) = &args.output {
+                        project::create(
+                            name,
+                            lang,
+                            Some(output),
+                        )?;
+                    } else {
+                        project::create(
+                            name,
+                            lang,
+                            None,
+                        )?;
+                    }
+                }
+            }
+
             Ok(())
         }
     }
