@@ -6,12 +6,6 @@ authors = ["Kiwiko"]
 description = "GPC/GPX Package Manager & Utility"
 repository = "https://github.com/zKiwiko/ersa"
 
-[package.metadata.wix]
-upgrade-guid = "4B901B2D-6EDA-40B3-91B4-56A97693D897"
-path-guid = "7A199AB5-341F-4DD0-A4C9-1275CB2FE0CC"
-license = "Apache-2.0"
-eula = false
-
 [dependencies]
 base64 = "0.22.1"
 chrono = "0.4.41"
@@ -23,9 +17,4 @@ serde_json = "1.0.140"
 tokio = { version = "1.45.0", features = ["full"] }
 zip = "3.0.0"
 semver = "1.0.26"
-
-# The profile that 'dist' will build with
-[profile.dist]
-inherits = "release"
-installers = ["nsis", "zip"]  # or ["zip", "nsis"]
-lto = "thin"
+regex = "1.11.1"

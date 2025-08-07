@@ -1,55 +1,41 @@
-#![allow(deprecated)]
 use crate::cli::console;
-use crate::cli::pkg::git::*;
-use base64::decode;
-use reqwest::Client;
+use crate::cli::pkg::git::{download_and_extract_repo, Lib};
+use crate::cli::pkg::utils::{http_utils, PackageManager};
 
-pub async fn url(git_url: &str) -> Result<(), String> {
-    let client = Client::new();
-    let response = client
-        .get(api_url(git_url))
-        .header("User-Agent", "ersa")
-        .send()
-        .await
-        .map_err(|e| format!("Failed to send request: {}", e))?
-        .json::<GithubFile>()
-        .await
-        .map_err(|e| format!("Failed to parse response: {}", e))?;
+/// Install a package from a Git URL
+pub async fn install_from_url(git_url: &str) -> Result<(), String> {
+    // Fetch and parse the remote lib.json to get package information
+    let lib_content = http_utils::fetch_remote_lib_json(git_url).await?;
+    let lib: Lib = serde_json::from_str(&lib_content)
+        .map_err(|e| format!("Failed to parse lib.json: {}", e))?;
 
-    let lib: Lib;
-    let lib_content: String;
+    // Validate package name
+    PackageManager::validate_package_name(&lib.name)?;
 
-    if response.encoding == "base64" {
-        let decoded = decode(response.content.replace("\n", ""));
-        lib_content = String::from_utf8(decoded.unwrap()).unwrap();
-    } else {
-        return Err("Unsupported encoding".to_string());
-    }
-
-    lib = serde_json::from_str(&lib_content).map_err(|e| format!("Failed to parse JSON: {}", e))?;
-
-    let app_dir = get_app_directory()?;
-    let target_dir = app_dir.join("bin").join("lib").join(lib.name.clone());
-
-    if target_dir.exists() {
+    // Check if package already exists
+    if PackageManager::package_exists(&lib.name)? {
         return Err(format!(
-            "Package '{}' already exists at {}",
-            lib.name,
-            target_dir.to_string_lossy().replace('\\', "/")
+            "Package '{}' already exists. Use 'update' to upgrade it.",
+            lib.name
         ));
     }
+
+    // Get target directory for installation
+    let target_dir = PackageManager::get_package_directory(&lib.name)?;
 
     console::log(&format!(
         "Installing package '{}' from {}...",
         lib.name, git_url
     ));
 
+    // Download and extract the repository
     download_and_extract_repo(git_url, &target_dir).await?;
 
-    console::success(&format!(
-        "Package '{}' installed successfully at {}",
-        lib.name,
-        target_dir.to_string_lossy().replace('\\', "/")
+    PackageManager::log_operation_success("installed", &lib.name);
+    console::info(&format!(
+        "Package location: {}",
+        target_dir.to_string_lossy()
     ));
+    
     Ok(())
 }

@@ -1,25 +1,23 @@
+use crate::cli::pkg::utils::PackageManager;
 use std::fs;
-use crate::cli::pkg::git::*;
-use crate::cli::console;
 
-pub fn remove(package: &str) -> Result<(), String> {
-    let app_dir = get_app_directory()?;
-    let lib_dir = app_dir.join("bin").join("lib");
+/// Remove an installed package
+pub fn remove_package(package_name: &str) -> Result<(), String> {
+    // Ensure library directory exists
+    PackageManager::ensure_lib_directory()?;
 
-    if !lib_dir.exists() {
-        return Err("Library directory not found".to_string());
+    // Check if package exists
+    if !PackageManager::package_exists(package_name)? {
+        return Err(format!("Package '{}' not found", package_name));
     }
 
-    let package_dir = lib_dir.join(package);
+    let package_dir = PackageManager::get_package_directory(package_name)?;
 
-    if !package_dir.exists() {
-        return Err(format!("Package '{}' not found", package));
-    }
-
+    // Remove the package directory
     fs::remove_dir_all(&package_dir)
         .map_err(|e| format!("Failed to remove package directory: {}", e))?;
 
-    console::success(&format!("Package '{}' removed successfully", package));
-
+    PackageManager::log_operation_success("removed", package_name);
+    
     Ok(())
 }
