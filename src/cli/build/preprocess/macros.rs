@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-/// Macro definition structure
 #[derive(Debug, Clone)]
 pub struct MacroDefinition {
     pub name: String,
@@ -8,8 +7,6 @@ pub struct MacroDefinition {
     pub body: String,
 }
 
-/// Process macro definitions and expansions
-/// Supports: define! name(param1, param2) { body } and name(arg1, arg2)! { body }
 pub fn process_macros(code: &str) -> Result<String, String> {
     let (code_without_defs, macros) = extract_macro_definitions(code)?;
     let expanded = expand_macros(&code_without_defs, &macros)?;
@@ -17,8 +14,6 @@ pub fn process_macros(code: &str) -> Result<String, String> {
     Ok(expanded)
 }
 
-/// Extract macro definitions from code
-/// Returns (code_without_definitions, macro_map)
 pub fn extract_macro_definitions(
     code: &str,
 ) -> Result<(String, HashMap<String, MacroDefinition>), String> {
@@ -38,7 +33,6 @@ pub fn extract_macro_definitions(
 
             skip_whitespace(&mut chars, &mut pos);
 
-            // Extract macro name
             let name = extract_identifier(&mut chars, &mut pos)?;
             if name.is_empty() {
                 return Err("Macro definition missing name after 'define!'".to_string());
@@ -46,9 +40,8 @@ pub fn extract_macro_definitions(
 
             skip_whitespace(&mut chars, &mut pos);
 
-            // Check for parameters
             let params = if chars.peek() == Some(&'(') {
-                chars.next(); // consume '('
+                chars.next();
                 pos += 1;
                 extract_parameters(&mut chars, &mut pos)?
             } else {
@@ -57,17 +50,14 @@ pub fn extract_macro_definitions(
 
             skip_whitespace(&mut chars, &mut pos);
 
-            // Expect '{'
             if chars.peek() != Some(&'{') {
                 return Err(format!("Expected '{{' after macro definition '{}'", name));
             }
-            chars.next(); // consume '{'
+            chars.next();
             pos += 1;
 
-            // Extract balanced body
             let body = extract_balanced_braces(&mut chars, &mut pos)?;
 
-            // Trim the body to remove leading/trailing whitespace
             let trimmed_body = body.trim().to_string();
 
             macros.insert(
@@ -86,7 +76,6 @@ pub fn extract_macro_definitions(
     Ok((result, macros))
 }
 
-/// Extract a list of parameters from parentheses
 pub fn extract_parameters<I>(
     chars: &mut std::iter::Peekable<I>,
     pos: &mut usize,
@@ -102,16 +91,16 @@ where
 
         match chars.peek() {
             Some(&')') => {
-                chars.next(); // consume ')'
+                chars.next();
                 *pos += 1;
-                // Add last parameter if not empty
+
                 if !current_param.trim().is_empty() {
                     params.push(current_param.trim().to_string());
                 }
                 break;
             }
             Some(&',') => {
-                chars.next(); // consume ','
+                chars.next();
                 *pos += 1;
                 if !current_param.trim().is_empty() {
                     params.push(current_param.trim().to_string());
@@ -135,7 +124,6 @@ where
     Ok(params)
 }
 
-/// Extract an identifier (alphanumeric + underscore)
 pub fn extract_identifier<I>(
     chars: &mut std::iter::Peekable<I>,
     pos: &mut usize,
@@ -156,7 +144,6 @@ where
     Ok(name)
 }
 
-/// Skip whitespace characters
 pub fn skip_whitespace<I>(chars: &mut std::iter::Peekable<I>, pos: &mut usize)
 where
     I: Iterator<Item = char>,
@@ -171,7 +158,6 @@ where
     }
 }
 
-/// Extract content between balanced braces
 pub fn extract_balanced_braces<I>(
     chars: &mut std::iter::Peekable<I>,
     pos: &mut usize,
@@ -206,7 +192,6 @@ where
     Err("Unmatched braces in macro definition".to_string())
 }
 
-/// Expand macro usages in code
 pub fn expand_macros(
     code: &str,
     macros: &HashMap<String, MacroDefinition>,
@@ -218,12 +203,10 @@ pub fn expand_macros(
     while let Some(ch) = chars.next() {
         pos += ch.len_utf8();
 
-        // Check if this could be a macro call (alphanumeric/underscore)
         if ch.is_alphabetic() || ch == '_' {
             let mut name = String::new();
             name.push(ch);
 
-            // Collect rest of identifier
             while let Some(&next_ch) = chars.peek() {
                 if next_ch.is_alphanumeric() || next_ch == '_' {
                     name.push(next_ch);
@@ -234,11 +217,10 @@ pub fn expand_macros(
                 }
             }
 
-            // Check for macro call pattern: name(args)! or name!
             skip_whitespace(&mut chars, &mut pos);
 
             let args = if chars.peek() == Some(&'(') {
-                chars.next(); // consume '('
+                chars.next();
                 pos += 1;
                 Some(extract_arguments(&mut chars, &mut pos)?)
             } else {
@@ -247,38 +229,33 @@ pub fn expand_macros(
 
             skip_whitespace(&mut chars, &mut pos);
 
-            // Check for '!'
             if chars.peek() == Some(&'!') {
-                chars.next(); // consume '!'
+                chars.next();
                 pos += 1;
 
                 skip_whitespace(&mut chars, &mut pos);
 
-                // Expect '{'
                 if chars.peek() != Some(&'{') {
                     return Err(format!("Expected '{{' after macro call '{}!'", name));
                 }
-                chars.next(); // consume '{'
+                chars.next();
                 pos += 1;
 
-                // Extract body (what replaces %0)
                 let body = extract_balanced_braces(&mut chars, &mut pos)?;
 
-                // Look up macro
                 if let Some(macro_def) = macros.get(&name) {
                     let expanded = substitute_macro(macro_def, args.as_deref(), &body)?;
-                    // Recursively expand any macros in the substituted result
+
                     let fully_expanded = expand_macros(&expanded, macros)?;
                     result.push_str(&fully_expanded);
                 } else {
                     return Err(format!("Undefined macro: '{}'", name));
                 }
             } else {
-                // Not a macro call, just a regular identifier (possibly with parens)
                 result.push_str(&name);
                 if let Some(ref arg_list) = args {
                     result.push('(');
-                    // Recursively expand macros inside the arguments
+
                     let expanded_args = expand_macros(arg_list, macros)?;
                     result.push_str(&expanded_args);
                     result.push(')');
@@ -292,7 +269,6 @@ pub fn expand_macros(
     Ok(result)
 }
 
-/// Extract arguments from parentheses
 pub fn extract_arguments<I>(
     chars: &mut std::iter::Peekable<I>,
     pos: &mut usize,
@@ -327,7 +303,6 @@ where
     Err("Unmatched parentheses in macro arguments".to_string())
 }
 
-/// Substitute macro parameters and body
 pub fn substitute_macro(
     macro_def: &MacroDefinition,
     args: Option<&str>,
@@ -335,7 +310,6 @@ pub fn substitute_macro(
 ) -> Result<String, String> {
     let mut result = macro_def.body.clone();
 
-    // Substitute named parameters if provided
     if !macro_def.params.is_empty() {
         let arg_values = if let Some(args_str) = args {
             parse_argument_values(args_str)?
@@ -356,19 +330,16 @@ pub fn substitute_macro(
             ));
         }
 
-        // Substitute each parameter
         for (param, value) in macro_def.params.iter().zip(arg_values.iter()) {
             result = result.replace(param, value.trim());
         }
     }
 
-    // Substitute %0 with the body
     result = result.replace("%0", body.trim());
 
     Ok(result)
 }
 
-/// Parse comma-separated argument values
 pub fn parse_argument_values(args: &str) -> Result<Vec<String>, String> {
     let mut values = Vec::new();
     let mut current = String::new();
