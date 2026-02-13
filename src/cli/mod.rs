@@ -1,17 +1,17 @@
 use clap::Subcommand;
 
-pub mod add;
-pub mod new;
+pub mod build;
+pub mod lsp;
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    New(self::new::NewArgs),
-    Add(self::add::AddArgs),
+    Lsp(self::lsp::LspArgs),
+    Build(self::build::BuildArgs),
 }
 
-pub fn run(command: Command) -> Result<(), String> {
+pub async fn run(command: Command) -> Result<(), String> {
     match command {
-        Command::New(args) => self::new::run(args),
-        Command::Add(args) => self::add::run(args),
+        Command::Lsp(args) => self::lsp::run(args).await,
+        Command::Build(args) => self::build::run(args).await,
     }
 }

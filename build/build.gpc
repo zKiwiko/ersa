@@ -1,0 +1,13 @@
+// Comprehensivetestofmacros+ optimizationmain{
+    // Basicoptimizationvalue1= 125;
+    
+    // Macrowithoptimizationvalue2= 64;
+    
+    // Nestedmacroswithoptimizationvalue3= 11;
+    
+    // Complexexpressionvalue4= 73;
+    
+    // Bitwiseoperationsmask= (0xFF& 0x0F) | 16;
+    
+    // Mixedexpressionsresult= 45;
+}

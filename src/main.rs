@@ -1,11 +1,7 @@
 use clap::Parser;
-mod cli;
-mod log;
-
-#[cfg(target_os = "windows")]
-pub const ERSA_USER_DIR: &str = concat!(env!("APPDATA"), "\\ersa");
-#[cfg(not(target_os = "windows"))]
-pub const ERSA_USER_DIR: &str = concat!(env!("HOME"), "/.local/share/ersa");
+pub mod cli;
+pub mod log;
+pub mod network;
 
 #[derive(Parser)]
 #[command(name = "ersa", version = env!("CARGO_PKG_VERSION"), about = "GPC/GPX Language Tooling")]
@@ -17,7 +13,8 @@ struct Cli {
     command: cli::Command,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
 
     if cli.verbose {
@@ -26,7 +23,7 @@ fn main() {
         }
     }
 
-    match cli::run(cli.command) {
+    match cli::run(cli.command).await {
         Ok(_) => (),
         Err(e) => {
             log::error(&format!("{}", e));
