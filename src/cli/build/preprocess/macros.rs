@@ -5,6 +5,7 @@ pub struct MacroDefinition {
     pub name: String,
     pub params: Vec<String>,
     pub body: String,
+    pub requires_body: bool,
 }
 
 pub fn process_macros(code: &str) -> Result<String, String> {
@@ -59,6 +60,7 @@ pub fn extract_macro_definitions(
             let body = extract_balanced_braces(&mut chars, &mut pos)?;
 
             let trimmed_body = body.trim().to_string();
+            let requires_body = trimmed_body.contains("%0");
 
             macros.insert(
                 name.clone(),
@@ -66,6 +68,7 @@ pub fn extract_macro_definitions(
                     name,
                     params,
                     body: trimmed_body,
+                    requires_body,
                 },
             );
         } else {
@@ -235,15 +238,27 @@ pub fn expand_macros(
 
                 skip_whitespace(&mut chars, &mut pos);
 
-                if chars.peek() != Some(&'{') {
-                    return Err(format!("Expected '{{' after macro call '{}!'", name));
-                }
-                chars.next();
-                pos += 1;
-
-                let body = extract_balanced_braces(&mut chars, &mut pos)?;
-
                 if let Some(macro_def) = macros.get(&name) {
+                    let body = if macro_def.requires_body {
+                        if chars.peek() != Some(&'{') {
+                            return Err(format!(
+                                "Expected '{{' after macro call '{}!' (macro requires a body)",
+                                name
+                            ));
+                        }
+                        chars.next();
+                        pos += 1;
+                        extract_balanced_braces(&mut chars, &mut pos)?
+                    } else {
+                        if chars.peek() == Some(&'{') {
+                            chars.next();
+                            pos += 1;
+                            extract_balanced_braces(&mut chars, &mut pos)?
+                        } else {
+                            String::new()
+                        }
+                    };
+
                     let expanded = substitute_macro(macro_def, args.as_deref(), &body)?;
 
                     let fully_expanded = expand_macros(&expanded, macros)?;
