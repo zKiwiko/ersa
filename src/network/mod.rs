@@ -1,10 +1,21 @@
 pub mod github;
+
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
-#[cfg(target_os = "windows")]
-pub const ERSA_USER_DIR: &str = concat!(env!("APPDATA"), "\\ersa");
-#[cfg(not(target_os = "windows"))]
-pub const ERSA_USER_DIR: &str = concat!(env!("HOME"), "/.local/share/ersa");
+pub fn get_ersa_user_dir() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        let appdata = std::env::var("APPDATA")
+            .unwrap_or_else(|_| "C:\\Users\\Default\\AppData\\Roaming".to_string());
+        format!("{}\\ersa", appdata)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+        format!("{}/.local/share/ersa", home)
+    }
+}
 
 pub async fn get_latest_version(url: &str) -> Result<String, String> {
     let repo_info = github::get_repoinfo(url).await.map_err(|e| e.to_string())?;
@@ -68,10 +79,10 @@ pub async fn download_latest_release(url: &str) -> Result<(), String> {
         .await
         .map_err(|e| format!("Failed to read bytes: {}", e))?;
 
-    std::fs::create_dir_all(ERSA_USER_DIR)
-        .map_err(|e| format!("Failed to create directory: {}", e))?;
+    let user_dir = get_ersa_user_dir();
+    std::fs::create_dir_all(&user_dir).map_err(|e| format!("Failed to create directory: {}", e))?;
 
-    let file_path = format!("{}/{}", ERSA_USER_DIR, asset_name);
+    let file_path = format!("{}/{}", user_dir, asset_name);
     std::fs::write(&file_path, bytes).map_err(|e| format!("Failed to write file: {}", e))?;
 
     #[cfg(not(target_os = "windows"))]
